@@ -1,0 +1,53 @@
+version: '3'
+services:
+
+  wordpress:
+    #    image: bitnami/php-fpm
+    image: wordpress:php8.2-fpm # worked when I use fastcgi_pass in nginx config file
+    container_name: php-fpm
+      #ports:
+      #  - '80:80'
+    volumes:
+      - ./wp-files:/var/www/html
+    networks:
+      - app-net
+    environment:
+      WORDPRESS_DB_HOST: $DHOST:3306
+      WORDPRESS_DB_NAME: $DNAME
+      WORDPRESS_DB_USER: $DUSER
+      WORDPRESS_DB_PASSWORD: $DPASSWORD
+    depends_on:
+      - mysql
+
+  nginx:
+    image: nginx
+    container_name: nginx
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./wp-files:/var/www/html
+      - ./certs:/etc/ssl/certs
+      - ./.htpasswd:/etc/nginx/.htpasswd
+    networks:
+      - app-net
+    depends_on:
+      - wordpress
+      - mysql
+
+  mysql:
+    image: mysql
+    volumes:
+      - ./data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: $ROOT_PASS
+      MYSQL_DATABASE: $DNAME
+      MYSQL_USER: $DUSER
+      MYSQL_PASSWORD: $DPASSWORD
+    networks:
+      - app-net
+     
+networks:
+  app-net:
+    driver: bridge
